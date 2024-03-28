@@ -1,1 +1,2 @@
-# Loss-Landscape-Flatten-in-Logit-Space
+# Loss Landscape Flatten in Logit Space
+LF Loss
