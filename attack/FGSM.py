@@ -3,10 +3,11 @@ import torch
 import torch.nn.functional as F
 
 class FGSM(Attack):
-    def __init__(self, model, eps, alpha=2., initial='none'):
+    def __init__(self, model, eps, a1, a2, initial='none'):
         self.model = model
         self.eps = eps/255.
-        self.alpha = alpha/255.
+        self.a1 = a1/255.
+        self.a2 = a2/255.
 
         if initial == 'none':
             self.get_dist = self.get_standard_fgsm
@@ -30,7 +31,7 @@ class FGSM(Attack):
         loss.backward()
 
         grad = delta.grad.detach()
-        delta.data = torch.clamp(delta + (self.eps - self.alpha)* torch.sign(grad), -self.eps, self.eps)
+        delta.data = torch.clamp(delta + self.a2* torch.sign(grad), -self.eps, self.eps)
 
         delta = torch.clamp(delta, 0 - x, 1 - x)
         delta = delta.detach()

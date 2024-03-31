@@ -76,7 +76,8 @@ if __name__ == '__main__':
     argparser.add_argument('--norm', type=str, default='Linf')
     argparser.add_argument('--restart', type=int, default=1)
     ## Single Step Attack options
-    argparser.add_argument('--alpha', type=float, default=4.)
+    argparser.add_argument('--a1', type=float, default=4.)
+    argparser.add_argument('--a2', type=float, default=8.)    
 
     # Test mode arguments
     argparser.add_argument('--test_method', type=str, help='AA: auto attack, PGD: PGD_Linf attack', default="AA")
