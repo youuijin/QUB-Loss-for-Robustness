@@ -81,7 +81,7 @@ class Trainer:
 
         self.manager.save_model(self.model)
 
-        return last_val, last_val_adv, round(train_time,4), round(attack_time,4)
+        return last_val, last_val_adv, round(train_time,4), round(tot_attack_time,4)
     
     def test(self):
         # test

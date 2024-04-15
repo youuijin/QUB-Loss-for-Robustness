@@ -7,8 +7,8 @@ class Manager:
         cur = datetime.now().strftime('%m-%d_%H-%M')
 
         if args.train_attack!="":
-            if args.alpha != 4.0:
-                log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}_alpha{args.alpha}/lr{args.lr}_{args.sche}/{cur}"
+            if args.train_attack != 'PGD_Linf':
+                log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
             else:
                 log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}/lr{args.lr}_{args.sche}/{cur}"
         else:

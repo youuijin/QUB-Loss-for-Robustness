@@ -26,7 +26,7 @@ class rLFAttack(Attack):
         delta.requires_grad = True
         output = self.model(x + delta)
         pred = F.softmax(output, dim=1)
-        loss = -1 * (1 - torch.sum(pred**2, dim=1)).mean()
+        loss = (1 - torch.sum(pred**2, dim=1)).mean()
         loss.backward()
 
         grad = delta.grad.detach()

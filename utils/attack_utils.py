@@ -5,11 +5,11 @@ def set_attack(attack_name, model, eps, args):
     if attack_name == '':
         return Nothing.Nothing(model)
     elif 'FGSM' in attack_name:
-        return FGSM.FGSM(model, eps, args.alpha, initial=initial)
+        return FGSM.FGSM(model, eps, args.a1, args.a2, initial=initial)
     elif attack_name == 'PGD_Linf':
         return PGD.PGDAttack(model, norm=args.norm, eps=eps, iter=args.iter, restart=args.restart)
     elif 'rLF' in attack_name:
-        return rLF.rLFAttack(model, eps, args.alpha, initial=initial)
+        return rLF.rLFAttack(model, eps, args.a1, args.a2, initial=initial)
     elif attack_name == 'AA':
         return Auto.AutoAttack(model, eps, args)
     else:
@@ -26,5 +26,7 @@ def name_to_initial(attack_name):
         return 'normal'
     elif attack_name in ['FGSM_LF']:
         return 'flat'
+    elif attack_name in ['FGSM_LF_G']:
+        return 'flat_grad'
     else:
         return None

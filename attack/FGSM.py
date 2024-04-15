@@ -19,6 +19,8 @@ class FGSM(Attack):
             self.get_dist = self.get_normal_distribution
         elif initial == 'flat':
             self.get_dist = self.get_flat_distribution
+        elif initial == 'flat_grad':
+            self.get_dist = self.get_flat_grad_distribution
 
     def perturb(self, x, y):
         delta = torch.zeros_like(x).to(x.device)
@@ -37,4 +39,5 @@ class FGSM(Attack):
         delta = delta.detach()
 
         return x + delta
+    
     
