@@ -16,15 +16,19 @@ class Tester:
     def __init__(self, args, model, device):
         self.device = device
         self.model = model.to(device)
-        self.save_path = './results/saved_model'
+        self.save_path = args.save_path
         self.args = args
+        self.lipschitz = args.lipschitz
 
         self.test_eps = args.test_eps
         self.test_method = args.test_method
+        if args.test_method == "bound":
+            self.csv = 'Bound'
         # auto attack
-        if args.test_method == "AA":
+        elif args.test_method == "AA":
             self.csv = 'AutoAttack'
-
+        elif args.test_method == "AA_ckpt":
+            self.csv = 'AutoAttack_ckpt'
         # adversarial attack - PGD_Linf
         else:
             self.csv = 'PGD_Attack'
@@ -62,8 +66,10 @@ class Tester:
             return False
 
     def attack_method(self): # Atttackckckckckkckckck
-        if self.test_method == "AA":
+        if "AA" in self.test_method:
             self.test_at = AutoAttack(self.model, eps=self.test_eps, args=self.args)
+        elif self.test_method == 'bound':
+            self.test_at = PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=20, restart=1, norm='Linf')
         else:
             self.test_at = PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
 
@@ -92,25 +98,66 @@ class Tester:
                 continue
             self.model.load_state_dict(torch.load(f'{self.save_path}/{model_path}', map_location=self.device))
             self.model.eval()
-            
-            test_correct_count = 0
-            test_adv_correct_count = 0
-            for _, (x, y) in enumerate(tqdm(self.test_loader, desc='AA test')):
-                x = x.to(self.device)
-                y = y.to(self.device)
-                x_adv = self.test_at.perturb(x, y)
-                correct_count = self.inference(x, y)
-                adv_correct_count = self.inference(x_adv, y)
-                test_correct_count += correct_count
-                test_adv_correct_count += adv_correct_count
-            
-            test_acc =  round(test_correct_count/len(self.test_data)*100, 4)
-            test_adv_acc = round(test_adv_correct_count/len(self.test_data)*100, 4)
 
-            result = [model_path, self.test_eps, test_acc, test_adv_acc]
-            with open(f'./results/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
-                wr = csv.writer(f)
-                wr.writerow(result)
+            if self.test_method == 'bound':
+                adv_losses = 0
+                lower_bound = 0
+                approx_losses = 0
+                approx_metrics = 0
+
+                for _, (x, y) in enumerate(tqdm(self.test_loader, desc='bound test')):
+                    x = x.to(self.device)
+                    y = y.to(self.device)
+                    
+                    logit = self.model(x)
+                    softmax = F.softmax(logit, dim=1)
+                    y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
+                    loss = F.cross_entropy(logit, y, reduction='none')
+
+                    x_adv = self.test_at.perturb(x, y) # PGD50
+                    f_logit = self.model(x_adv)
+                    f_norm = torch.norm(f_logit-logit, dim=1)
+                    approx_loss = loss + torch.sum((f_logit-logit)*(softmax-y_onehot), dim=1) + self.lipschitz/2.0*torch.pow(f_norm, 2)
+                    approx_losses += approx_loss.mean().item()
+
+                    bounded_loss = loss - 1.0/(2*self.lipschitz)*torch.pow(torch.norm(softmax-y_onehot, dim=1),2)
+                    lower_bound += bounded_loss.mean().item()
+                    
+                    approx_metric = torch.abs(torch.norm(f_logit - (logit - 1.0/self.lipschitz*(softmax-y_onehot)), dim=1))
+                    approx_metrics += approx_metric.mean().item()/torch.abs(logit).mean().item()
+
+                    adv_losses += F.cross_entropy(f_logit, y).item()
+
+                adv_losses = round(adv_losses/len(self.test_data), 4)
+                lower_bound = round(lower_bound/len(self.test_data), 4)
+                approx_losses = round(approx_losses/len(self.test_data), 4)
+                approx_metrics = approx_metrics/len(self.test_data)
+
+                result = [model_path, self.test_eps, adv_losses, lower_bound, approx_losses, approx_metrics]
+                with open(f'./results/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
+                    wr = csv.writer(f)
+                    wr.writerow(result)
+
+            else:
+            
+                test_correct_count = 0
+                test_adv_correct_count = 0
+                for _, (x, y) in enumerate(tqdm(self.test_loader, desc='AA test')):
+                    x = x.to(self.device)
+                    y = y.to(self.device)
+                    x_adv = self.test_at.perturb(x, y)
+                    correct_count = self.inference(x, y)
+                    adv_correct_count = self.inference(x_adv, y)
+                    test_correct_count += correct_count
+                    test_adv_correct_count += adv_correct_count
+                
+                test_acc =  round(test_correct_count/len(self.test_data)*100, 4)
+                test_adv_acc = round(test_adv_correct_count/len(self.test_data)*100, 4)
+
+                result = [model_path, self.test_eps, test_acc, test_adv_acc]
+                with open(f'./results/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
+                    wr = csv.writer(f)
+                    wr.writerow(result)
 
     def inference(self, x, y):
         logit = self.model(x)

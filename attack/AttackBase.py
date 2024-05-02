@@ -9,6 +9,7 @@ class Attack(ABC):
         pass
 
     def calc_loss_acc(self, x, y):
+        lipschitz = 0.5
         attack_time_st = time.time()
         adv_x = self.perturb(x, y)
         attack_time = (time.time() - attack_time_st)
@@ -19,7 +20,14 @@ class Attack(ABC):
         adv_outputs = torch.argmax(adv_pred, dim=1)
         adv_correct_count = (adv_outputs == y).sum().item()
 
-        return adv_loss, adv_correct_count, attack_time
+        with torch.no_grad():
+            logit = self.model(x)
+            softmax = F.softmax(logit, dim=1)
+            y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
+            approx_metric = torch.abs(torch.norm(adv_logit - (logit - 1.0/lipschitz*(softmax-y_onehot)), dim=1))
+            approx_metric = approx_metric.mean().item()/torch.abs(logit).mean().item()
+
+        return adv_loss, adv_correct_count, attack_time, approx_metric
     
     def get_standard_fgsm(self, a):
         return a
@@ -57,4 +65,23 @@ class Attack(ABC):
 
         delta = delta.detach()
 
+        return delta
+    
+    def get_flat_grad_distribution(self, x):
+        delta = torch.zeros_like(x).to(x.device)
+
+        delta.requires_grad = True
+        output = self.model(x + delta)
+        pred = F.softmax(output, dim=1)
+        loss = -1 * (1 - torch.sum(pred**2, dim=1)).mean()
+        loss.backward()
+
+        grad = delta.grad.detach()
+        max_grads = torch.max(grad.view(x.shape[0], -1), dim=1).values
+        max_grads = torch.where(max_grads == 0.0, torch.tensor(1.0), max_grads).to(x.device)
+        scaled_grad = grad / max_grads.view(-1, 1, 1, 1)
+
+        delta.data = torch.clamp(delta - self.a1 * scaled_grad, -self.eps, self.eps)
+
+        delta = delta.detach()
         return delta

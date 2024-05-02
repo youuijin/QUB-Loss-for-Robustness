@@ -1,4 +1,4 @@
-from attack import Nothing, FGSM, PGD, rLF, Auto
+from attack import Nothing, FGSM, PGD, rLF, Auto, QAUB
 
 def set_attack(attack_name, model, eps, args):
     initial = name_to_initial(attack_name)
@@ -10,6 +10,8 @@ def set_attack(attack_name, model, eps, args):
         return PGD.PGDAttack(model, norm=args.norm, eps=eps, iter=args.iter, restart=args.restart)
     elif 'rLF' in attack_name:
         return rLF.rLFAttack(model, eps, args.a1, args.a2, initial=initial)
+    elif 'QAUB' in attack_name:
+        return QAUB.QAUB(model, eps, args.step, args.lipschitz)
     elif attack_name == 'AA':
         return Auto.AutoAttack(model, eps, args)
     else:
