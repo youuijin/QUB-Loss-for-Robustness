@@ -17,6 +17,8 @@ def set_seed(seed=706):
 
 def set_model(model_name, n_class, imgc=3):
     if model_name=="resnet18":
+        # model = ResNet18(n_class)
+        # model.load_state_dict(torch.load('./results/saved_model/resnet18_no_attack_lr0.1_multistep_03-29_22-03.pt'))
         return ResNet18(n_class)
     elif model_name=="resnet34":
         return ResNet34(n_class)

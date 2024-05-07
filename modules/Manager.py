@@ -36,8 +36,9 @@ class Manager:
     def save_model(self, model, ckpt=-1):
         if ckpt >= 0:
             # during valudation phase
+            str_ckpt = '0'*(3-len(str(ckpt))) + str(ckpt)
             os.makedirs(f'{self.save_dir}/ckpt/{self.log_name.replace("/", "_")}', exist_ok=True)
-            save_path=f'{self.save_dir}/ckpt/{self.log_name.replace("/", "_")}/epoch_{ckpt}.pt'
+            save_path=f'{self.save_dir}/ckpt/{self.log_name.replace("/", "_")}/epoch_{str_ckpt}.pt'
         else:
             # after whole training phase
             save_path = f'{self.save_dir}/saved_model/{self.log_name.replace("/", "_")}.pt'

@@ -28,11 +28,11 @@ def main(args):
         trainer = Trainer(args, model, device, manager)
 
         last_val, last_val_adv, train_time, attack_time = trainer.train()
-        test_acc, test_adv_acc = trainer.test()
+        # test_acc, test_adv_acc = trainer.test()
 
-        ## logging result in csv ##
-        result = [manager.log_name, test_acc, test_adv_acc, last_val, last_val_adv, train_time, attack_time]
-        manager.record_csv('result', result)
+        # ## logging result in csv ##
+        # result = [manager.log_name, test_acc, test_adv_acc, last_val, last_val_adv, train_time, attack_time]
+        # manager.record_csv('result', result)
         
     else:
         # test using auto attack
@@ -54,6 +54,7 @@ if __name__ == '__main__':
 
     ## Model options
     argparser.add_argument('--model', type=str, help='type of model to use', default="resnet18")
+    argparser.add_argument('--save_ckpt', action='store_true', help='saving model in every validation phase', default=False)
     
     ## GPU options
     argparser.add_argument('--device_num', type=int, help='which gpu to use', default=0)
@@ -75,19 +76,27 @@ if __name__ == '__main__':
     argparser.add_argument('--iter', type=int, default=10)
     argparser.add_argument('--norm', type=str, default='Linf')
     argparser.add_argument('--restart', type=int, default=1)
+
     ## Single Step Attack options
     argparser.add_argument('--a1', type=float, default=4.)
     argparser.add_argument('--a2', type=float, default=8.)    
+
+    ## QAUB Attack options
+    argparser.add_argument('--lipschitz', type=float, default=0.5)
+    argparser.add_argument('--step', type=int, default=0)
 
     # Test mode arguments
     argparser.add_argument('--test_method', type=str, help='AA: auto attack, PGD: PGD_Linf attack', default="AA")
     argparser.add_argument('--model_path', type=str, help='test model path', default="")
     argparser.add_argument('--test_eps', type=float, help='test attack bound', default=8.0)
+    argparser.add_argument('--save_path', type=str, default='./results/saved_model')
 
     ## auto attack options
     argparser.add_argument('--auto_version', type=str, help='auto attack version, standard, plus, rand, custom', default='standard')
     argparser.add_argument('--auto_norm', type=str, help='norm for auto attack', default='Linf')
     argparser.add_argument('--auto_custom', type=str, help='if custom version, select auto attack index to test model', default="1000")
+
+    argparser.add_argument('--LF_weight', type=float, default=1.0)
 
     args = argparser.parse_args()
 
