@@ -13,6 +13,7 @@ class Trainer:
         self.manager = manager
 
         self.LF_weight = args.LF_weight ##
+        self.fix_interval = args.fix_interval
 
         ### optimizer, logger setting ###
         self.optim, self.scheduler = train_utils.set_optim(self.model, args.sche, args.lr, args.epoch)
@@ -23,6 +24,12 @@ class Trainer:
     def train(self):
         train_time, tot_attack_time = 0, 0
         last_val, last_val_adv = 0, 0
+        fixed_model = train_utils.set_model('resnet18', 10, 3)
+        model_state = self.model.state_dict()
+
+        # 복제 모델 생성
+        fixed_model.load_state_dict(model_state)
+        fixed_model.to(self.device)
         
         for epoch in tqdm(range(self.args.epoch), desc='epoch', position=0, ascii=" ="):
             train_correct_count = 0
@@ -37,9 +44,10 @@ class Trainer:
                 y = y.to(self.device)
                 
                 attack = attack_utils.set_attack(self.args.train_attack, self.model, self.args.train_eps, self.args)
-        
-                loss, correct_count, attack_time, _ = attack.calc_loss_acc(x, y) ## remove
 
+                # loss, correct_count, attack_time = attack.calc_loss_acc(x, y) ## original
+                # loss, correct_count, attack_time, _ = attack.calc_loss_acc(x, y) ## approximated metric
+                loss, correct_count, attack_time = attack.calc_loss_acc(x, y, fixed_model)
                 
                 tot_attack_time += attack_time
 
@@ -68,18 +76,19 @@ class Trainer:
                     val_loss += loss.item() * x.shape[0]
                     
                     val_attack = attack_utils.set_attack(self.args.val_attack, self.model, self.args.val_eps, self.args)
+                    # adv_loss, adv_correct_count, _, approx_metric = val_attack.calc_loss_acc(x, y)
                     adv_loss, adv_correct_count, _, approx_metric = val_attack.calc_loss_acc(x, y)
 
                     val_adv_correct_count += adv_correct_count
                     val_adv_loss += adv_loss.item() * x.shape[0]
 
-                    approx_metrics += approx_metric
+                    # approx_metrics += approx_metric
 
                 self.manager.record('writer', "val/acc", round(val_correct_count/len(self.val_loader.dataset)*100, 4), epoch)
                 self.manager.record('writer', "val/loss", round(val_loss/len(self.val_loader.dataset)*100, 4), epoch)
                 self.manager.record('writer', "val/acc_adv", round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4), epoch)
                 self.manager.record('writer', "val/loss_adv", round(val_adv_loss/len(self.val_loader.dataset)*100, 4), epoch)
-                self.manager.record('writer', "val/approx_metrix", round(approx_metrics/len(self.val_loader.dataset), 6), epoch)
+                # self.manager.record('writer', "val/approx_metrix", round(approx_metrics/len(self.val_loader.dataset), 6), epoch)
 
                 last_val = round(val_correct_count/len(self.val_loader.dataset)*100, 4)
                 last_val_adv = round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4)
@@ -88,8 +97,14 @@ class Trainer:
                     self.manager.save_model(self.model, epoch)
 
             self.scheduler.step()
+            if epoch%self.fix_interval == 0:
+                model_state = self.model.state_dict()
 
-        # self.manager.save_model(self.model)
+                # 복제 모델 생성
+                fixed_model.load_state_dict(model_state)
+
+
+        self.manager.save_model(self.model)
 
         return last_val, last_val_adv, round(train_time,4), round(tot_attack_time,4)
     

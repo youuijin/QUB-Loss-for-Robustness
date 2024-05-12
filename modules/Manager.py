@@ -16,6 +16,9 @@ class Manager:
         else:
             log_name = f"{args.model}/no_attack/lr{args.lr}_{args.sche}/{cur}"
 
+        if args.argument_log != "":
+            log_name += args.argument_log
+
         writer = SummaryWriter(f"./{log_dir}/{log_name}")
 
         self.log_name = log_name

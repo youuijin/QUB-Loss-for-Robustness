@@ -9,6 +9,7 @@ from torch.utils.data import DataLoader
 
 from attack.PGD import PGDAttack
 from attack.Auto import AutoAttack
+from attack.FGSM import FGSM
 
 # TODO: load_state_dict는 객체를 바꾸지 않는지 확인, 더 간단한 코드 작성하기
 
@@ -36,8 +37,8 @@ class Tester:
         self.set_tested_model()
 
         if args.model_path != "":
-            if self.check_is_tested(args.model_path+".pt"):
-                raise ValueError("This model is already tested")
+            # if self.check_is_tested(args.model_path+".pt"):
+            #     raise ValueError("This model is already tested")
             self.model_paths = [f'{args.model_path}.pt']
         else:
             exist_model_paths = os.listdir(f'{self.save_path}/')
@@ -46,6 +47,9 @@ class Tester:
             for exist_model_path in exist_model_paths:
                 if not self.check_is_tested(exist_model_path) and exist_model_path[-2:] == 'pt':
                     self.model_paths.append(exist_model_path)
+
+            # print(self.model_paths)
+            # exit()
 
         self.set_dataset(args)
         self.attack_method()
@@ -69,7 +73,8 @@ class Tester:
         if "AA" in self.test_method:
             self.test_at = AutoAttack(self.model, eps=self.test_eps, args=self.args)
         elif self.test_method == 'bound':
-            self.test_at = PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=20, restart=1, norm='Linf')
+            # self.test_at = PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=20, restart=1, norm='Linf')
+            self.test_at = FGSM(self.model, self.test_eps, 0., self.test_eps, initial='none')
         else:
             self.test_at = PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
 
@@ -133,7 +138,7 @@ class Tester:
                 approx_losses = round(approx_losses/len(self.test_data), 4)
                 approx_metrics = approx_metrics/len(self.test_data)
 
-                result = [model_path, self.test_eps, adv_losses, lower_bound, approx_losses, approx_metrics]
+                result = [model_path, 'FGSM', self.test_eps, adv_losses, lower_bound, approx_losses, approx_metrics]
                 with open(f'./results/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
                     wr = csv.writer(f)
                     wr.writerow(result)

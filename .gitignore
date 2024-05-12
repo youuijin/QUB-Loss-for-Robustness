@@ -1,2 +1,5 @@
 results
 commands
+__pycache__/
+data
+others

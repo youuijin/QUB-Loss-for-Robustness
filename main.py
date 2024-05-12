@@ -16,7 +16,7 @@ def main(args):
     device = torch.device(f'cuda:{args.device_num}') if args.device_num>=0 else 'cpu'
 
     ## model setting ##
-    model = train_utils.set_model(args.model, args.n_way, args.imgc)
+    model = train_utils.set_model(args.model, args.n_way, args.imgc, args.pretrained)
     model = model.to(device)
 
     if args.mode == 'train':
@@ -28,11 +28,11 @@ def main(args):
         trainer = Trainer(args, model, device, manager)
 
         last_val, last_val_adv, train_time, attack_time = trainer.train()
-        # test_acc, test_adv_acc = trainer.test()
+        test_acc, test_adv_acc = trainer.test()
 
         # ## logging result in csv ##
-        # result = [manager.log_name, test_acc, test_adv_acc, last_val, last_val_adv, train_time, attack_time]
-        # manager.record_csv('result', result)
+        result = [manager.log_name, test_acc, test_adv_acc, last_val, last_val_adv, train_time, attack_time]
+        manager.record_csv('result', result)
         
     else:
         # test using auto attack
@@ -54,6 +54,7 @@ if __name__ == '__main__':
 
     ## Model options
     argparser.add_argument('--model', type=str, help='type of model to use', default="resnet18")
+    argparser.add_argument('--pretrained', action='store_true', help='loading pretrained model', default=False)
     argparser.add_argument('--save_ckpt', action='store_true', help='saving model in every validation phase', default=False)
     
     ## GPU options
@@ -63,7 +64,7 @@ if __name__ == '__main__':
     ## Training options
     argparser.add_argument('--epoch', type=int, help='epoch number', default=150)
     argparser.add_argument('--batch_size', type=int, help='batch size in epoch', default=128)
-    argparser.add_argument('--lr', type=float, help='learning rate', default=0.01)
+    argparser.add_argument('--lr', type=float, help='learning rate', default=0.1)
     argparser.add_argument('--sche', type=str, default="multistep")
 
     ## adversarial attack options
@@ -84,6 +85,7 @@ if __name__ == '__main__':
     ## QAUB Attack options
     argparser.add_argument('--lipschitz', type=float, default=0.5)
     argparser.add_argument('--step', type=int, default=0)
+    argparser.add_argument('--fix_interval', type=int, default=5)    
 
     # Test mode arguments
     argparser.add_argument('--test_method', type=str, help='AA: auto attack, PGD: PGD_Linf attack', default="AA")
@@ -97,6 +99,8 @@ if __name__ == '__main__':
     argparser.add_argument('--auto_custom', type=str, help='if custom version, select auto attack index to test model', default="1000")
 
     argparser.add_argument('--LF_weight', type=float, default=1.0)
+
+    argparser.add_argument('--argument_log', type=str, default="")
 
     args = argparser.parse_args()
 

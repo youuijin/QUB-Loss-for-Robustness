@@ -15,11 +15,14 @@ def set_seed(seed=706):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
-def set_model(model_name, n_class, imgc=3):
+def set_model(model_name, n_class, imgc=3, pretrained=False):
     if model_name=="resnet18":
-        # model = ResNet18(n_class)
-        # model.load_state_dict(torch.load('./results/saved_model/resnet18_no_attack_lr0.1_multistep_03-29_22-03.pt'))
-        return ResNet18(n_class)
+        if pretrained:
+            model = ResNet18(n_class)
+            model.load_state_dict(torch.load('./results/saved_model/resnet18_no_attack_lr0.1_multistep_03-29_22-03.pt'))
+            return model
+        else:
+            return ResNet18(n_class)
     elif model_name=="resnet34":
         return ResNet34(n_class)
     elif model_name=="resnet50":

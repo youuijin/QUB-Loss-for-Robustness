@@ -115,7 +115,8 @@ class QAUB(Attack):
         # ||delta*h'(x)+1/K*L'(h(x))||^2
         x = x.requires_grad_(True)
 
-        fgsm = FGSM(self.model, self.eps, 0, self.eps, initial='none')
+        # fgsm = FGSM(self.model, self.eps, 0, self.eps, initial='none')
+        fgsm = FGSM(self.model, self.eps, self.eps/2, self.eps/2, initial='uniform')
         f_x = fgsm.perturb(x, y)
         ##################################################
         # delta를 정확히 계산
@@ -147,7 +148,7 @@ class QAUB(Attack):
 
         # cross entropy 미분 -> y'-y
         approx_loss = torch.pow(torch.norm(torch.matmul(delta, jacobian).squeeze()+1.0/self.lipschitz*(softmax-y_onehot), dim=1), 2)
-        print(approx_loss.mean())
+        # print(approx_loss.mean())
         return approx_loss.mean()
 
     def step4(self, x, y):
