@@ -27,7 +27,7 @@ class Attack(ABC):
             approx_metric = torch.abs(torch.norm(adv_logit - (logit - 1.0/lipschitz*(softmax-y_onehot)), dim=1))
             approx_metric = approx_metric.mean().item()/torch.abs(logit).mean().item()
 
-        return adv_loss, adv_correct_count, attack_time, approx_metric
+        return adv_loss, adv_correct_count, attack_time
     
     def get_standard_fgsm(self, a):
         return a

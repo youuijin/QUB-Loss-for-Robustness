@@ -2,6 +2,7 @@ import torch.nn.functional as F
 import torch
 from attack.AttackBase import Attack
 from attack.FGSM import FGSM
+from attack.PGD import PGDAttack
 from attack.rLF import rLFAttack
 import time
 
@@ -11,8 +12,10 @@ class QAUB(Attack):
         self.step = step
         self.lipschitz = lipschitz
         self.eps = eps
-        
-        if self.step==0:
+
+        if self.step==-1:
+            self.loss_func = self.step1_pgd
+        elif self.step==0:
             self.loss_func = self.step1_fgsm
         elif self.step==1:
             self.loss_func = self.step1_rLF
@@ -27,7 +30,7 @@ class QAUB(Attack):
         elif self.step==6:
             self.loss_func = self.step6
         # elif self.step==7:
-        #     self.loss_func = self.step7
+        #     self.loss_func = self.step1_pgd
         # elif self.step==8:
         #     self.loss_func = self.step8
         # elif self.step==10:
@@ -46,9 +49,9 @@ class QAUB(Attack):
 
     def calc_loss_acc(self, x, y):
         attack_time_st = time.time()
-        loss = self.loss_func(x, y)
+        approx_loss, adv_loss = self.loss_func(x, y)
         attack_time = (time.time() - attack_time_st)
-        return loss, 0, attack_time
+        return approx_loss, adv_loss, attack_time
     
     def step1_fgsm(self, x, y):
         # Quadratic upper bound
@@ -58,17 +61,19 @@ class QAUB(Attack):
         softmax = F.softmax(logit, dim=1)
         y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
         
-        fgsm = FGSM(self.model, self.eps, 0, self.eps, initial='none')
+        # fgsm = FGSM(self.model, self.eps, 0, self.eps, initial='none') ## original FGSM
+        fgsm = FGSM(self.model, self.eps, self.eps/2, self.eps/2, initial='uniform') ## FGSM-RS
         f_x = fgsm.perturb(x, y)
         f_logit = self.model(f_x)
         f_norm = torch.norm(f_logit-logit, dim=1)
 
         loss = F.cross_entropy(logit, y, reduction='none')
+        adv_loss = F.cross_entropy(f_logit, y)
 
         f_approx_loss = loss + torch.sum((f_logit-logit)*(softmax-y_onehot), dim=1) + self.lipschitz/2.0*torch.pow(f_norm, 2)
         
         # bound_rate = (f_adv_loss<=f_approx_loss).sum().item() 
-        return f_approx_loss.mean()
+        return f_approx_loss.mean(), adv_loss
     
     def step1_rLF(self, x, y):
         # Quadratic upper bound
@@ -77,19 +82,42 @@ class QAUB(Attack):
         softmax = F.softmax(logit, dim=1)
         y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
 
-        rlf = rLFAttack(self.model, self.eps, 0, self.eps, initial='none')
+        rlf = rLFAttack(self.model, self.eps, self.eps/2, self.eps/2, initial='uniform') ## rLF-RS
         lf_x = rlf.perturb(x, y)
         lf_logit = self.model(lf_x)
         lf_norm = torch.norm(lf_logit-logit, dim=1)
 
         loss = F.cross_entropy(logit, y, reduction='none')
+        adv_loss = F.cross_entropy(lf_logit, y)
 
         lf_approx_loss = loss + torch.sum((lf_logit-logit)*(softmax-y_onehot), dim=1) + self.lipschitz/2.0*torch.pow(lf_norm, 2)
 
-        return lf_approx_loss.mean()
+        return lf_approx_loss.mean(), adv_loss
+    
+    def step1_pgd(self, x, y):
+        # Quadratic upper bound
+        # L(h(x')) <= L(h(x))+(h(x')-h(x))L'(h(x)) + K/2*||h(x')-h(x)||^2
+
+        logit = self.model(x)
+        softmax = F.softmax(logit, dim=1)
+        y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
+        
+        pgd = PGDAttack(self.model)
+        p_x = pgd.perturb(x, y)
+        p_logit = self.model(p_x)
+        p_norm = torch.norm(p_logit-logit, dim=1)
+
+        loss = F.cross_entropy(logit, y, reduction='none')
+        adv_loss = F.cross_entropy(p_logit, y)
+
+        p_approx_loss = loss + torch.sum((p_logit-logit)*(softmax-y_onehot), dim=1) + self.lipschitz/2.0*torch.pow(p_norm, 2)
+        
+        # bound_rate = (f_adv_loss<=f_approx_loss).sum().item() 
+        return p_approx_loss.mean(), adv_loss
 
     def step2(self, x, y):
-        fgsm = FGSM(self.model, self.eps, 0, self.eps, initial='none')
+        # fgsm = FGSM(self.model, self.eps, 0, self.eps, initial='none') ## FGSM
+        fgsm = FGSM(self.model, self.eps, self.eps/2, self.eps/2, initial='uniform') ## FGSM-RS
         f_x = fgsm.perturb(x, y)
 
         # with torch.no_grad():
@@ -104,10 +132,10 @@ class QAUB(Attack):
         # cross entropy 미분 -> y'-y
         approx_loss = torch.pow(torch.norm(logit_adv - (logit - 1.0/self.lipschitz*(softmax-y_onehot)), dim=1),2)
 
-        print("ce", loss.item())
-        print("qaub", approx_loss.mean().item())
+        # print("ce", loss.item())
+        # print("qaub", approx_loss.mean().item())
 
-        return loss + approx_loss.mean()
+        return approx_loss.mean()
 
     def step3(self, x, y):
         # approximation #1-1
@@ -149,7 +177,8 @@ class QAUB(Attack):
         # cross entropy 미분 -> y'-y
         approx_loss = torch.pow(torch.norm(torch.matmul(delta, jacobian).squeeze()+1.0/self.lipschitz*(softmax-y_onehot), dim=1), 2)
         # print(approx_loss.mean())
-        return approx_loss.mean()
+        loss = F.cross_entropy(logit, y)
+        return loss + approx_loss.mean()
 
     def step4(self, x, y):
         # linear approximation + heuristic
@@ -159,7 +188,8 @@ class QAUB(Attack):
         approx_loss = torch.pow((1.0+self.eps/255.)/self.lipschitz*torch.norm(pred-y_onehot, dim=1), 2)
 
         # approx_loss = torch.pow(self.train_eps*torch.norm(pred-y_onehot), 2)
-        return approx_loss.mean()
+        loss = F.cross_entropy(logit, y)
+        return loss + approx_loss.mean()
     
     def step5(self, x, y):
         # plus upper bound
@@ -170,7 +200,8 @@ class QAUB(Attack):
         approx_loss = loss - 1.0/(2*self.lipschitz)*torch.pow(torch.norm(pred-y_onehot, dim=1),2)
         # approx_loss = loss + torch.sum(logit*(pred-y_onehot), dim=1) - 1/(2.0 * self.lipschitz)*torch.pow(torch.norm(pred-y_onehot, dim=1), 2)
 
-        return approx_loss.mean()
+        # loss = F.cross_entropy(logit, y)
+        return loss + approx_loss.mean()
     
     def step6(self, x, y):
         # plus upper bound
@@ -179,7 +210,9 @@ class QAUB(Attack):
         loss = F.cross_entropy(logit, y)
         y_onehot = F.one_hot(y, num_classes = pred.shape[1])
         approx_loss = loss + 3.0/(2*self.lipschitz)*torch.pow(torch.norm(pred-y_onehot, dim=1),2)
-        return approx_loss.mean()
+        # return approx_loss.mean()
+        loss = F.cross_entropy(logit, y)
+        return loss + approx_loss.mean()
 
     # def step7(self, x, y):
     #     # Quadratic upper bound

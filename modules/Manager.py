@@ -8,7 +8,8 @@ class Manager:
 
         if args.train_attack!="":
             if args.train_attack == 'QAUB':
-                log_name = f"{args.model}/{args.train_attack}/step{args.step}/eps{args.train_eps}(lips{args.lipschitz})/lr{args.lr}_{args.sche}/{cur}"
+                # log_name = f"{args.model}/{args.train_attack}/step{args.step}/eps{args.train_eps}(lips{args.lipschitz})/lr{args.lr}_{args.sche}/{cur}"
+                log_name = f"{args.model}/{args.train_attack}/{args.argument_log}/eps{args.train_eps}(lips{args.lipschitz})/lr{args.lr}_{args.sche}/{cur}"
             elif args.train_attack != 'PGD_Linf':
                 log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
             else:
@@ -16,10 +17,13 @@ class Manager:
         else:
             log_name = f"{args.model}/no_attack/lr{args.lr}_{args.sche}/{cur}"
 
-        if args.argument_log != "":
-            log_name += args.argument_log
+        # if args.argument_log != "":
+        #     log_name += args.argument_log
 
         writer = SummaryWriter(f"./{log_dir}/{log_name}")
+        if args.train_attack=='QAUB':
+            self.approx_writer = SummaryWriter(f"./{log_dir}/approx")
+            self.adv_writer = SummaryWriter(f"./{log_dir}/adv")
 
         self.log_name = log_name
         self.save_dir = './results'
@@ -28,9 +32,15 @@ class Manager:
     def record(self, writer_name, name, value, epoch):
         if writer_name == "writer":
             writer = self.writer
+            writer.add_scalar(name, value, epoch)
+        elif writer_name == "approx":
+            writer = self.approx_writer
+            writer.add_scalar(self.log_name, value, epoch)
+        elif writer_name == "adv":
+            writer = self.adv_writer
+            writer.add_scalar(self.log_name, value, epoch)
 
-        writer.add_scalar(name, value, epoch)
-
+        
     def record_csv(self, file_name, rows):
         with open(f'{self.save_dir}/csvs/{file_name}.csv', 'a', encoding='utf-8', newline='') as f:
             wr = csv.writer(f)
