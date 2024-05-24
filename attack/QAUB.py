@@ -7,12 +7,16 @@ from attack.rLF import rLFAttack
 import time
 
 class QAUB(Attack):
-    def __init__(self, model, eps, step, lipschitz):
+    def __init__(self, model, eps, step, lipschitz, a1, a2):
         self.model = model
         self.step = step
         self.lipschitz = lipschitz
         self.eps = eps
 
+        self.attack = FGSM(self.model, self.eps, a1, a2, initial='uniform') ## FGSM-RS 
+
+        self.loss_func = self.qub
+        '''
         if self.step==-1:
             self.loss_func = self.step1_pgd
         elif self.step==0:
@@ -29,20 +33,7 @@ class QAUB(Attack):
             self.loss_func = self.step5
         elif self.step==6:
             self.loss_func = self.step6
-        # elif self.step==7:
-        #     self.loss_func = self.step1_pgd
-        # elif self.step==8:
-        #     self.loss_func = self.step8
-        # elif self.step==10:
-        #     self.loss_func = self.step10
-        # elif self.step==11:
-        #     self.loss_func = self.step11
-        # elif self.step==12:
-        #     self.loss_func = self.step12
-        # elif self.step==13:
-        #     self.loss_func = self.step13
-        # elif self.step==14:
-        #     self.loss_func = self.step14
+        '''
 
     def perturb(self, x, y):
         return None
@@ -52,6 +43,23 @@ class QAUB(Attack):
         approx_loss, adv_loss = self.loss_func(x, y)
         attack_time = (time.time() - attack_time_st)
         return approx_loss, adv_loss, attack_time
+    
+    def qub(self, x, y):
+        logit = self.model(x)
+        softmax = F.softmax(logit, dim=1)
+        y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
+        
+        advx = self.attack.perturb(x, y)
+        adv_logit = self.model(advx)
+        adv_norm = torch.norm(adv_logit-logit, dim=1)
+
+        loss = F.cross_entropy(logit, y, reduction='none')
+        adv_loss = F.cross_entropy(adv_logit, y)
+
+        upper_loss = loss + torch.sum((adv_logit-logit)*(softmax-y_onehot), dim=1) + self.lipschitz/2.0*torch.pow(adv_norm, 2)
+        
+        # bound_rate = (f_adv_loss<=f_approx_loss).sum().item() 
+        return upper_loss.mean(), adv_loss
     
     def step1_fgsm(self, x, y):
         # Quadratic upper bound

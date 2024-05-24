@@ -9,7 +9,7 @@ class Manager:
         if args.train_attack!="":
             if args.train_attack == 'QAUB':
                 # log_name = f"{args.model}/{args.train_attack}/step{args.step}/eps{args.train_eps}(lips{args.lipschitz})/lr{args.lr}_{args.sche}/{cur}"
-                log_name = f"{args.model}/{args.train_attack}/{args.argument_log}/eps{args.train_eps}(lips{args.lipschitz})/lr{args.lr}_{args.sche}/{cur}"
+                log_name = f"{args.model}/QUB(FGSM_RS)/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
             elif args.train_attack != 'PGD_Linf':
                 log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
             else:

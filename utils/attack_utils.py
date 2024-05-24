@@ -11,7 +11,7 @@ def set_attack(attack_name, model, eps, args):
     elif 'rLF' in attack_name:
         return rLF.rLFAttack(model, eps, args.a1, args.a2, initial=initial)
     elif 'QAUB' in attack_name:
-        return QAUB.QAUB(model, eps, args.step, args.lipschitz)
+        return QAUB.QAUB(model, eps, args.step, args.lipschitz, args.a1, args.a2)
     elif attack_name == 'AA':
         return Auto.AutoAttack(model, eps, args)
     else:
