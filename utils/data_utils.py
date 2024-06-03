@@ -1,5 +1,5 @@
 import torchvision.transforms as transforms
-from torchvision.datasets import CIFAR10
+from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 
 from torch.utils.data import DataLoader, random_split
 
@@ -21,8 +21,15 @@ def set_dataloader(args):
                                         transforms.ToTensor(),
                                         transforms.Normalize(norm_mean, norm_std)])
 
-    train_data = CIFAR10(root='./data', train=True, download=True, transform=transform)
-    test_data = CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+    if args.dataset == 'cifar10':
+        train_data = CIFAR10(root='./data', train=True, download=True, transform=transform)
+        test_data = CIFAR10(root='./data', train=False, download=True, transform=transform_test)
+    elif args.dataset == 'cifar100':
+        train_data = CIFAR100(root='./data', train=True, download=True, transform=transform)
+        test_data = CIFAR100(root='./data', train=False, download=True, transform=transform_test)
+    elif args.dataset == 'svhn':
+        train_data = SVHN(root='./data', train=True, download=True, transform=transform)
+        test_data = SVHN(root='./data', train=False, download=True, transform=transform)
 
     train_size = int(len(train_data) * 0.8) # 80% training data
     valid_size = len(train_data) - train_size # 20% validation data

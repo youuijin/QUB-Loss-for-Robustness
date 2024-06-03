@@ -3,13 +3,13 @@ from datetime import datetime
 import csv, torch, os
 
 class Manager:
-    def __init__(self, args, log_dir):
+    def __init__(self, args):
         cur = datetime.now().strftime('%m-%d_%H-%M')
 
         if args.train_attack!="":
             if args.train_attack == 'QAUB':
-                # log_name = f"{args.model}/{args.train_attack}/step{args.step}/eps{args.train_eps}(lips{args.lipschitz})/lr{args.lr}_{args.sche}/{cur}"
-                log_name = f"{args.model}/QUB(FGSM_RS)/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
+                log_name = f"{args.model}/QUB(FGSM_RS)/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}" # FGSM-RS QUB
+                # log_name = f"{args.model}/QUB(PGD_Linf)/eps{args.train_eps}(iter{args.iter})/lr{args.lr}_{args.sche}/{cur}" # PGD_Linf QUB
             elif args.train_attack != 'PGD_Linf':
                 log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
             else:
@@ -17,16 +17,13 @@ class Manager:
         else:
             log_name = f"{args.model}/no_attack/lr{args.lr}_{args.sche}/{cur}"
 
-        # if args.argument_log != "":
-        #     log_name += args.argument_log
-
-        writer = SummaryWriter(f"./{log_dir}/{log_name}")
-        if args.train_attack=='QAUB':
-            self.approx_writer = SummaryWriter(f"./{log_dir}/approx")
-            self.adv_writer = SummaryWriter(f"./{log_dir}/adv")
+        self.save_dir = f'./results/{args.dataset}'
+        writer = SummaryWriter(f"{self.save_dir}/logs/{log_name}")
+        # if args.train_attack=='QAUB':
+        #     self.approx_writer = SummaryWriter(f"./{self.save_dir}/logs/approx")
+        #     self.adv_writer = SummaryWriter(f"./{self.save_dir}/logs/adv")
 
         self.log_name = log_name
-        self.save_dir = './results'
         self.writer = writer
 
     def record(self, writer_name, name, value, epoch):

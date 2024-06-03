@@ -22,7 +22,7 @@ def main(args):
     if args.mode == 'train':
         prnt(vars(args))
         ## logger ##
-        manager = Manager(args, "results/logs")
+        manager = Manager(args)
 
         ## Train ##
         trainer = Trainer(args, model, device, manager)
@@ -47,6 +47,7 @@ if __name__ == '__main__':
     
     # Common arguments
     ## Dataset options
+    argparser.add_argument('--dataset', type=str, help='dataset', default='cifar10')
     argparser.add_argument('--imgsz', type=int, help='imgsz', default=32)
     argparser.add_argument('--imgc', type=int, help='imgc', default=3)
     argparser.add_argument('--n_way', type=int, help='n way', default=10)

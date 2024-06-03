@@ -1,4 +1,4 @@
-from attack import Nothing, FGSM, PGD, rLF, Auto, QAUB
+from attack import Nothing, FGSM, PGD, rLF, Auto, QAUB, QUB
 
 def set_attack(attack_name, model, eps, args):
     initial = name_to_initial(attack_name)
@@ -10,8 +10,10 @@ def set_attack(attack_name, model, eps, args):
         return PGD.PGDAttack(model, norm=args.norm, eps=eps, iter=args.iter, restart=args.restart)
     elif 'rLF' in attack_name:
         return rLF.rLFAttack(model, eps, args.a1, args.a2, initial=initial)
+    elif 'QUB' in attack_name:
+        return QUB.QUB(model, eps, args.lipschitz, args.a1, args.a2)
     elif 'QAUB' in attack_name:
-        return QAUB.QAUB(model, eps, args.step, args.lipschitz, args.a1, args.a2)
+        return QAUB.QAUB(model, eps, args.step, args.lipschitz, args.a1, args.a2, args.iter)
     elif attack_name == 'AA':
         return Auto.AutoAttack(model, eps, args)
     else:
@@ -26,9 +28,5 @@ def name_to_initial(attack_name):
         return 'bernoulli'
     elif attack_name in ['FGSM_NR', 'rLF_NR']:
         return 'normal'
-    elif attack_name in ['FGSM_LF']:
-        return 'flat'
-    elif attack_name in ['FGSM_LF_G']:
-        return 'flat_grad'
     else:
         return None

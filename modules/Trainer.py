@@ -4,7 +4,7 @@ from tqdm import tqdm
 import time
 
 from utils import train_utils, data_utils, attack_utils
-
+from attack import PGD
 
 
 class Trainer:
@@ -27,12 +27,6 @@ class Trainer:
         train_time, tot_attack_time = 0, 0
         last_val, last_val_adv = 0, 0
         best_acc = 0
-        fixed_model = train_utils.set_model('resnet18', 10, 3)
-        model_state = self.model.state_dict()
-
-        # 복제 모델 생성
-        fixed_model.load_state_dict(model_state)
-        fixed_model.to(self.device)
         
         for epoch in tqdm(range(self.args.epoch), desc='epoch', position=0, ascii=" ="):
             train_correct_count = 0
@@ -86,8 +80,8 @@ class Trainer:
                     val_correct_count += correct_count
                     val_loss += loss.item() * x.shape[0]
                     
-                    val_attack = attack_utils.set_attack(self.args.val_attack, self.model, self.args.val_eps, self.args)
-                    # adv_loss, adv_correct_count, _, approx_metric = val_attack.calc_loss_acc(x, y)
+                    # val_attack = attack_utils.set_attack(self.args.val_attack, self.model, self.args.val_eps, self.args)
+                    val_attack = PGD.PGDAttack(self.model, self.args.val_eps, iter=10, restart=1)
                     adv_loss, adv_correct_count, _ = val_attack.calc_loss_acc(x, y)
 
                     val_adv_correct_count += adv_correct_count
@@ -99,7 +93,6 @@ class Trainer:
                 self.manager.record('writer', "val/loss", round(val_loss/len(self.val_loader.dataset)*100, 4), epoch)
                 self.manager.record('writer', "val/acc_adv", round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4), epoch)
                 self.manager.record('writer', "val/loss_adv", round(val_adv_loss/len(self.val_loader.dataset)*100, 4), epoch)
-                # self.manager.record('writer', "val/approx_metrix", round(approx_metrics/len(self.val_loader.dataset), 6), epoch)
 
                 last_val = round(val_correct_count/len(self.val_loader.dataset)*100, 4)
                 last_val_adv = round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4)
@@ -112,14 +105,7 @@ class Trainer:
                     self.manager.save_model(self.model)
 
             self.scheduler.step()
-            # if epoch%self.fix_interval == 0:
-            #     model_state = self.model.state_dict()
-
-            #     # 복제 모델 생성
-            #     fixed_model.load_state_dict(model_state)
-
-        # self.manager.save_model(self.model)
-
+            
         return last_val, last_val_adv, round(train_time,4), round(tot_attack_time,4)
     
     def test(self):

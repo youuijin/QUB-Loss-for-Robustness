@@ -7,13 +7,14 @@ from attack.rLF import rLFAttack
 import time
 
 class QAUB(Attack):
-    def __init__(self, model, eps, step, lipschitz, a1, a2):
+    def __init__(self, model, eps, step, lipschitz, a1, a2, iter):
         self.model = model
         self.step = step
         self.lipschitz = lipschitz
         self.eps = eps
 
         self.attack = FGSM(self.model, self.eps, a1, a2, initial='uniform') ## FGSM-RS 
+        # self.attack = PGDAttack(self.model, self.eps, iter)
 
         self.loss_func = self.qub
         '''
