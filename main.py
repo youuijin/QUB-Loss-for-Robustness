@@ -86,22 +86,17 @@ if __name__ == '__main__':
     ## QAUB Attack options
     argparser.add_argument('--lipschitz', type=float, default=0.5)
     argparser.add_argument('--step', type=int, default=0)
-    argparser.add_argument('--fix_interval', type=int, default=5)    
 
     # Test mode arguments
     argparser.add_argument('--test_method', type=str, help='AA: auto attack, PGD: PGD_Linf attack', default="AA")
     argparser.add_argument('--model_path', type=str, help='test model path', default="")
     argparser.add_argument('--test_eps', type=float, help='test attack bound', default=8.0)
-    argparser.add_argument('--save_path', type=str, default='./results/saved_model')
 
     ## auto attack options
     argparser.add_argument('--auto_version', type=str, help='auto attack version, standard, plus, rand, custom', default='standard')
     argparser.add_argument('--auto_norm', type=str, help='norm for auto attack', default='Linf')
     argparser.add_argument('--auto_custom', type=str, help='if custom version, select auto attack index to test model', default="1000")
 
-    argparser.add_argument('--LF_weight', type=float, default=1.0)
-
-    argparser.add_argument('--argument_log', type=str, default="")
 
     args = argparser.parse_args()
 

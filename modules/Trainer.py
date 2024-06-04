@@ -14,9 +14,6 @@ class Trainer:
         self.device = device
         self.manager = manager
 
-        self.LF_weight = args.LF_weight ##
-        self.fix_interval = args.fix_interval
-
         ### optimizer, logger setting ###
         self.optim, self.scheduler = train_utils.set_optim(self.model, args.sche, args.lr, args.epoch)
         

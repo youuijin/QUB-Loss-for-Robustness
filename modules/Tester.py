@@ -9,15 +9,13 @@ from torch.utils.data import DataLoader
 
 from attack.PGD import PGDAttack
 from attack.Auto import AutoAttack
-from attack.FGSM import FGSM
 
 class Tester:
     def __init__(self, args, model, device):
         self.device = device
         self.model = model.to(device)
-        self.save_path = args.save_path
+        self.save_path = f'./results/{args.dataset}'
         self.args = args
-        self.lipschitz = args.lipschitz
 
         self.test_eps = args.test_eps
         self.test_method = args.test_method
@@ -39,11 +37,11 @@ class Tester:
                 raise ValueError("This model is already tested")
             self.model_paths = [f'{args.model_path}.pt']
         else:
-            exist_model_paths = os.listdir(f'{self.save_path}/')
+            exist_model_paths = os.listdir(f'{self.save_path}/saved_model')
             self.model_paths = []
             
             for exist_model_path in exist_model_paths:
-                if not self.check_is_tested(exist_model_path) and exist_model_path[-2:] == 'pt':
+                if not self.check_is_tested(exist_model_path):
                     self.model_paths.append(exist_model_path)
 
         self.set_dataset(args)
@@ -51,7 +49,7 @@ class Tester:
 
     def set_tested_model(self):
         self.tested_model_paths = []
-        f = open(f'./results/csvs/{self.csv}.csv', 'r', encoding='utf-8')
+        f = open(f'{self.save_path}/csvs/{self.csv}.csv', 'r', encoding='utf-8')
         rdr = csv.reader(f)
         next(rdr)
         for line in rdr:
@@ -115,7 +113,7 @@ class Tester:
             test_adv_acc = round(test_adv_correct_count/len(self.test_data)*100, 4)
 
             result = [model_path, self.test_eps, test_acc, test_adv_acc]
-            with open(f'./results/{self.dataset}/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
+            with open(f'{self.save_path}/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
                 wr = csv.writer(f)
                 wr.writerow(result)
 

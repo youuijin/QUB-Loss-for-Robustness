@@ -7,7 +7,7 @@ class Manager:
         cur = datetime.now().strftime('%m-%d_%H-%M')
 
         if args.train_attack!="":
-            if args.train_attack == 'QAUB':
+            if args.train_attack == 'QUB':
                 log_name = f"{args.model}/QUB(FGSM_RS)/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}" # FGSM-RS QUB
                 # log_name = f"{args.model}/QUB(PGD_Linf)/eps{args.train_eps}(iter{args.iter})/lr{args.lr}_{args.sche}/{cur}" # PGD_Linf QUB
             elif args.train_attack != 'PGD_Linf':
@@ -19,10 +19,6 @@ class Manager:
 
         self.save_dir = f'./results/{args.dataset}'
         writer = SummaryWriter(f"{self.save_dir}/logs/{log_name}")
-        # if args.train_attack=='QAUB':
-        #     self.approx_writer = SummaryWriter(f"./{self.save_dir}/logs/approx")
-        #     self.adv_writer = SummaryWriter(f"./{self.save_dir}/logs/adv")
-
         self.log_name = log_name
         self.writer = writer
 
