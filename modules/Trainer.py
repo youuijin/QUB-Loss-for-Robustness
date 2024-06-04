@@ -105,6 +105,8 @@ class Trainer:
                     self.manager.save_model(self.model)
 
             self.scheduler.step()
+
+        self.manager.save_model(self.model, mode='last')
             
         return last_val, last_val_adv, round(train_time,4), round(tot_attack_time,4)
     

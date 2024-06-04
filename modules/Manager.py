@@ -43,8 +43,10 @@ class Manager:
             wr = csv.writer(f)
             wr.writerow(rows)
     
-    def save_model(self, model, ckpt=-1):
-        if ckpt >= 0:
+    def save_model(self, model, ckpt=-1, mode='best'):
+        if mode == 'last':
+            save_path = f'{self.save_dir}/saved_model/{self.log_name.replace("/", "_")}_last.pt'
+        elif ckpt >= 0:
             # during valudation phase
             str_ckpt = '0'*(3-len(str(ckpt))) + str(ckpt)
             os.makedirs(f'{self.save_dir}/ckpt/{self.log_name.replace("/", "_")}', exist_ok=True)

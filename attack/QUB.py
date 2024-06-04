@@ -14,8 +14,6 @@ class QUB(Attack):
         self.attack = FGSM(self.model, self.eps, a1, a2, initial='uniform') ## FGSM-RS 
         # self.attack = PGDAttack(self.model, self.eps, iter) ## PGD-Linf
 
-        self.loss_func = self.qub
-
     def perturb(self, x, y):
         return None
 

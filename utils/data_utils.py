@@ -28,8 +28,8 @@ def set_dataloader(args):
         train_data = CIFAR100(root='./data', train=True, download=True, transform=transform)
         test_data = CIFAR100(root='./data', train=False, download=True, transform=transform_test)
     elif args.dataset == 'svhn':
-        train_data = SVHN(root='./data', train=True, download=True, transform=transform)
-        test_data = SVHN(root='./data', train=False, download=True, transform=transform)
+        train_data = SVHN(root='./data', split='train', download=True, transform=transform)
+        test_data = SVHN(root='./data', split='test', download=True, transform=transform)
 
     train_size = int(len(train_data) * 0.8) # 80% training data
     valid_size = len(train_data) - train_size # 20% validation data
