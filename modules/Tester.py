@@ -87,7 +87,7 @@ class Tester:
         elif args.dataset == 'cifar100':
             self.test_data = CIFAR100(root='./data', train=False, download=True, transform=transform)
         elif args.dataset == 'svhn':
-            self.test_data = SVHN(root='./data', train=False, download=True, transform=transform)
+            self.test_data = SVHN(root='./data', split='test', download=True, transform=transform)
         self.test_loader = DataLoader(self.test_data, batch_size=args.batch_size, shuffle=True, num_workers=0)
 
 
@@ -95,7 +95,7 @@ class Tester:
         for model_path in self.model_paths:
             if model_path[-2:] != 'pt':
                 continue
-            self.model.load_state_dict(torch.load(f'{self.save_path}/{model_path}', map_location=self.device))
+            self.model.load_state_dict(torch.load(f'{self.save_path}/saved_model/{model_path}', map_location=self.device))
             self.model.eval()
 
             test_correct_count = 0
