@@ -1,2 +1,2 @@
-# Loss Landscape Flatten in Logit Space
-LF Loss
+# Quadratic Upper Bound Loss for Robust Adversarial Training
+QUB Loss
