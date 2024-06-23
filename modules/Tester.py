@@ -7,8 +7,9 @@ import torchvision.transforms as transforms
 from torchvision.datasets import CIFAR10, CIFAR100, SVHN
 from torch.utils.data import DataLoader
 
-from attack.PGD import PGDAttack
-from attack.Auto import AutoAttack
+# from attack.PGD import PGDAttack
+from attack.AutoAttack import AutoAttack
+from utils import attack_utils
 
 class Tester:
     def __init__(self, args, model, device):
@@ -66,7 +67,7 @@ class Tester:
         if "AA" in self.test_method:
             self.test_at = AutoAttack(self.model, eps=self.test_eps, args=self.args)
         else:
-            self.test_at = PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
+            self.test_at = attack_utils.set_attack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
 
     def set_dataset(self, args):
         ### normalize setting ###

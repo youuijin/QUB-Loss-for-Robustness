@@ -4,15 +4,18 @@ from tqdm import tqdm
 import time
 
 from utils import train_utils, data_utils, attack_utils
-from attack import PGD
+from attack.AttackLoss import *
 
 
 class Trainer:
     def __init__(self, args, model, device, manager):
+        torch.autograd.set_detect_anomaly(True)
         self.args = args
         self.model = model
         self.device = device
         self.manager = manager
+        self.Loss = train_utils.set_Loss(args.loss, args.train_attack, model, args.train_eps, args)
+        self.val_attack = attack_utils.set_attack('PGD_Linf', model, args.val_eps, args)
 
         ### optimizer, logger setting ###
         self.optim, self.scheduler = train_utils.set_optim(self.model, args.sche, args.lr, args.epoch)
@@ -21,14 +24,13 @@ class Trainer:
         self.train_loader, self.val_loader, self.test_loader = data_utils.set_dataloader(args)
 
     def train(self):
-        train_time, tot_attack_time = 0, 0
+        train_time, tot_attack_time, tot_loss_time = 0, 0, 0
         last_val, last_val_adv = 0, 0
         best_acc = 0
         
         for epoch in tqdm(range(self.args.epoch), desc='epoch', position=0, ascii=" ="):
             train_correct_count = 0
             train_loss = 0
-            real_loss = 0
             # approx_metrics = 0
 
             self.model.train()
@@ -38,20 +40,12 @@ class Trainer:
                 x = x.to(self.device)
                 y = y.to(self.device)
                 
-                attack = attack_utils.set_attack(self.args.train_attack, self.model, self.args.train_eps, self.args)
-
-                # loss, correct_count, attack_time = attack.calc_loss_acc(x, y) ## original
-                # loss, correct_count, attack_time, _ = attack.calc_loss_acc(x, y) ## approximated metric
-                if self.args.train_attack == 'QAUB':
-                    loss, adv_loss, attack_time = attack.calc_loss_acc(x, y)
-                    real_loss += adv_loss.item()*x.shape[0]
-                else:
-                    loss, correct_count, attack_time = attack.calc_loss_acc(x, y)
-                    train_correct_count += correct_count
+                loss, attack_time, loss_time = self.Loss.calc_loss(x, y)
+                train_loss += loss.item()*x.shape[0]
+                train_correct_count += self.Loss.calc_acc(x, y)
                 
                 tot_attack_time += attack_time
-                
-                train_loss += loss.item()*x.shape[0]
+                tot_loss_time += loss_time
                 
                 self.optim.zero_grad()
                 loss.backward()
@@ -61,10 +55,6 @@ class Trainer:
 
             self.manager.record('writer', "train/acc", round(train_correct_count/len(self.train_loader.dataset)*100, 4), epoch)
             self.manager.record('writer', "train/loss", round(train_loss/len(self.train_loader.dataset), 4), epoch)
-            if self.args.train_attack == 'QAUB':
-                self.manager.record('approx', "", round(train_loss/len(self.train_loader.dataset), 4), epoch)
-                self.manager.record('adv', "", round(real_loss/len(self.train_loader.dataset), 4), epoch)
-
             if epoch%5==0:
                 self.model.eval()
                 val_correct_count, val_adv_correct_count = 0, 0
@@ -76,15 +66,12 @@ class Trainer:
 
                     val_correct_count += correct_count
                     val_loss += loss.item() * x.shape[0]
-                    
-                    # val_attack = attack_utils.set_attack(self.args.val_attack, self.model, self.args.val_eps, self.args)
-                    val_attack = PGD.PGDAttack(self.model, self.args.val_eps, iter=10, restart=1)
-                    adv_loss, adv_correct_count, _ = val_attack.calc_loss_acc(x, y)
 
-                    val_adv_correct_count += adv_correct_count
+                    advx = self.val_attack.perturb(x, y)
+                    adv_loss, adv_corr = self.predict(advx, y, self.model)
+
+                    val_adv_correct_count += adv_corr
                     val_adv_loss += adv_loss.item() * x.shape[0]
-
-                    # approx_metrics += approx_metric
 
                 self.manager.record('writer', "val/acc", round(val_correct_count/len(self.val_loader.dataset)*100, 4), epoch)
                 self.manager.record('writer', "val/loss", round(val_loss/len(self.val_loader.dataset)*100, 4), epoch)
@@ -118,7 +105,8 @@ class Trainer:
             y = y.to(self.device)
             _, correct_count = self.predict(x, y, self.model)
             test_correct_count += correct_count
-            _, adv_correct_count, _ = val_attack.calc_loss_acc(x, y)
+            advx = self.val_attack.perturb(x, y)
+            _, adv_correct_count = self.predict(advx, y, self.model)
             test_adv_correct_count += adv_correct_count
 
         test_acc = round(test_correct_count/len(self.test_loader.dataset)*100, 4)

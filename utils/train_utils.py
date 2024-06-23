@@ -6,6 +6,8 @@ from utils.model.resnet import *
 from utils.model.wrn import *
 from utils.SGDR import CosineAnnealingWarmUpRestarts
 
+from attack.AttackLoss import *
+
 def set_seed(seed=706):
     random.seed(seed)
     np.random.seed(seed)
@@ -59,3 +61,13 @@ def set_optim(model, sche, lr, epoch):
     
     return optim, scheduler
 
+
+def set_Loss(loss_name, attack_name, model, eps, args):
+    if loss_name == 'CE':
+        return CrossEntropy(attack_name, model, eps, args)
+    elif loss_name == 'TRADES':
+        return TRADES(attack_name, model, eps, args)
+    elif loss_name == 'QUB':
+        return QUB(attack_name, model, eps, args)
+    else:
+        raise ValueError("wrong type Loss")

@@ -1,4 +1,3 @@
-
 import  torch, argparse
 
 from pyprnt import prnt
@@ -67,12 +66,16 @@ if __name__ == '__main__':
     argparser.add_argument('--batch_size', type=int, help='batch size in epoch', default=128)
     argparser.add_argument('--lr', type=float, help='learning rate', default=0.1)
     argparser.add_argument('--sche', type=str, default="multistep")
+    argparser.add_argument('--loss', type=str, default='CE')
 
     ## adversarial attack options
     argparser.add_argument('--train_attack', type=str, help='attack for adversarial training', default="")
     argparser.add_argument('--train_eps', type=float, help='training attack bound', default=8.0)
     argparser.add_argument('--val_attack', type=str, default="PGD_Linf")
     argparser.add_argument('--val_eps', type=float, help='validation attack bound', default=8.0)
+
+    ## TRADES options
+    argparser.add_argument('--beta', type=float, default=6.)   
 
     ## PGD Attack options
     argparser.add_argument('--iter', type=int, default=10)

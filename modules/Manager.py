@@ -7,13 +7,15 @@ class Manager:
         cur = datetime.now().strftime('%m-%d_%H-%M')
 
         if args.train_attack!="":
-            if args.train_attack == 'QUB':
-                log_name = f"{args.model}/QUB(FGSM_RS)/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}" # FGSM-RS QUB
-                # log_name = f"{args.model}/QUB(PGD_Linf)/eps{args.train_eps}(iter{args.iter})/lr{args.lr}_{args.sche}/{cur}" # PGD_Linf QUB
-            elif args.train_attack != 'PGD_Linf':
-                log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})/lr{args.lr}_{args.sche}/{cur}"
+            if args.train_attack == 'PGD_Linf':
+                attack_name = f'{args.train_attack}/eps{args.train_eps}'
+            elif 'FGSM' in args.train_attack:
+                attack_name = f'{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})'
             else:
-                log_name = f"{args.model}/{args.train_attack}/eps{args.train_eps}/lr{args.lr}_{args.sche}/{cur}"
+                raise ValueError('Attack Name for logger')
+            
+            log_name = f'{args.model}/{args.loss}/{attack_name}'
+           
         else:
             log_name = f"{args.model}/no_attack/lr{args.lr}_{args.sche}/{cur}"
 

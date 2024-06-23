@@ -2,7 +2,7 @@ from attack.AttackBase import Attack
 import torch
 import torch.nn.functional as F
 
-class rLFAttack(Attack):
+class FGSM(Attack):
     def __init__(self, model, eps, a1, a2, initial='none'):
         self.model = model
         self.eps = eps/255.
@@ -25,15 +25,15 @@ class rLFAttack(Attack):
 
         delta.requires_grad = True
         output = self.model(x + delta)
-        pred = F.softmax(output, dim=1)
-        loss = (1 - torch.sum(pred**2, dim=1)).mean()
+        loss = F.cross_entropy(output, y, reduction='mean')
         loss.backward()
 
         grad = delta.grad.detach()
-        delta.data = torch.clamp(delta + self.a2 * torch.sign(grad), -self.eps, self.eps)
+        delta.data = torch.clamp(delta + self.a2* torch.sign(grad), -self.eps, self.eps)
 
         delta = torch.clamp(delta, 0 - x, 1 - x)
         delta = delta.detach()
 
         return x + delta
+    
     

@@ -8,18 +8,18 @@ class Attack(ABC):
     def perturb(self):
         pass
 
-    def calc_loss_acc(self, x, y):
-        attack_time_st = time.time()
-        adv_x = self.perturb(x, y)
-        adv_logit = self.model(adv_x)
-        adv_loss = F.cross_entropy(adv_logit, y)
-        attack_time = (time.time() - attack_time_st)
+    # def calc_loss_acc(self, x, y):
+    #     attack_time_st = time.time()
+    #     adv_x = self.perturb(x, y)
+    #     adv_logit = self.model(adv_x)
+    #     adv_loss = F.cross_entropy(adv_logit, y)
+    #     attack_time = (time.time() - attack_time_st)
 
-        adv_pred = F.softmax(adv_logit, dim=1)
-        adv_outputs = torch.argmax(adv_pred, dim=1)
-        adv_correct_count = (adv_outputs == y).sum().item()
+    #     adv_pred = F.softmax(adv_logit, dim=1)
+    #     adv_outputs = torch.argmax(adv_pred, dim=1)
+    #     adv_correct_count = (adv_outputs == y).sum().item()
 
-        return adv_loss, adv_correct_count, attack_time
+    #     return adv_loss, adv_correct_count, attack_time
     
     def get_standard_fgsm(self, a):
         return a
