@@ -3,7 +3,7 @@ import torch.nn.functional as F
 from attack.AttackBase import Attack
 
 class PGDAttack(Attack):
-    def __init__(self, model, norm='Linf', eps=8.0, alpha=2.0, iter=10, restart=1, loss='CE'):
+    def __init__(self, model, norm='Linf', eps=8.0, alpha=2.0, iter=10, restart=1, loss='CE', device=None):
         self.model = model
         self.norm = norm
         self.eps = eps/255.
@@ -11,10 +11,11 @@ class PGDAttack(Attack):
         self.iter = iter
         self.restart = restart
         self.loss = loss
+        self.device = device
 
     def perturb(self, x_natural, y):
-        max_loss = torch.zeros(y.shape[0]).to(x_natural.device)
-        max_x = torch.zeros_like(x_natural).to(x_natural.device)
+        max_loss = torch.zeros(y.shape[0]).to(self.device)
+        max_x = torch.zeros_like(x_natural).to(self.device)
         
         for _ in range(self.restart):
             x = x_natural.detach()

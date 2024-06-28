@@ -14,14 +14,16 @@ class Trainer:
         self.model = model
         self.device = device
         self.manager = manager
-        self.Loss = train_utils.set_Loss(args.loss, args.train_attack, model, args.train_eps, args)
-        self.val_attack = attack_utils.set_attack('PGD_Linf', model, args.val_eps, args)
-
+        
         ### optimizer, logger setting ###
         self.optim, self.scheduler = train_utils.set_optim(self.model, args.sche, args.lr, args.epoch)
         
         ### data loader setting ###
         self.train_loader, self.val_loader, self.test_loader = data_utils.set_dataloader(args)
+        self.args.steps = len(self.train_loader)
+        self.Loss = train_utils.set_Loss(args.loss, args.train_attack, model, args.train_eps, device, args)
+        self.val_attack = attack_utils.set_attack('PGD_Linf', model, args.val_eps, device, args)
+
 
     def train(self):
         train_time, tot_attack_time, tot_loss_time = 0, 0, 0
@@ -36,10 +38,9 @@ class Trainer:
             self.model.train()
 
             train_time_st = time.time()
-            for _, (x, y) in enumerate(tqdm(self.train_loader, desc='train step', position=1, leave=False, ascii=" =")):
+            for batch_idx, (x, y) in enumerate(tqdm(self.train_loader, desc='train step', position=1, leave=False, ascii=" =")):
                 x = x.to(self.device)
                 y = y.to(self.device)
-                
                 loss, attack_time, loss_time = self.Loss.calc_loss(x, y)
                 train_loss += loss.item()*x.shape[0]
                 train_correct_count += self.Loss.calc_acc(x, y)
@@ -99,7 +100,7 @@ class Trainer:
         self.model.eval()
         test_correct_count = 0
         test_adv_correct_count = 0
-        val_attack = attack_utils.set_attack(self.args.val_attack, self.model, self.args.val_eps, self.args)
+        # val_attack = attack_utils.set_attack(self.args.val_attack, self.model, self.args.val_eps, self.args)
         for _, (x, y) in enumerate(tqdm(self.test_loader, desc="test")):
             x = x.to(self.device)
             y = y.to(self.device)

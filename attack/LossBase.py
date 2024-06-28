@@ -6,12 +6,13 @@ import time
 from utils.attack_utils import set_attack
 
 class Loss(ABC):
-    def __init__(self, attack_name, model, eps, args):
+    def __init__(self, attack_name, model, eps, device, args):
         self.model = model
+        self.device = device
         if attack_name == "":
             self.attack = None
         else:
-            self.attack = set_attack(attack_name, model, eps, args)
+            self.attack = set_attack(attack_name, model, eps, device, args)
         
     @abstractmethod
     def calc_loss(self, x, y):

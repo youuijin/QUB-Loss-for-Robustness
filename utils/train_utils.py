@@ -62,12 +62,12 @@ def set_optim(model, sche, lr, epoch):
     return optim, scheduler
 
 
-def set_Loss(loss_name, attack_name, model, eps, args):
+def set_Loss(loss_name, attack_name, model, eps, device, args):
     if loss_name == 'CE':
-        return CrossEntropy(attack_name, model, eps, args)
+        return CrossEntropy(attack_name, model, eps, device, args)
     elif loss_name == 'TRADES':
-        return TRADES(attack_name, model, eps, args)
+        return TRADES(attack_name, model, eps, device, args)
     elif loss_name == 'QUB':
-        return QUB(attack_name, model, eps, args)
+        return QUB(attack_name, model, eps, device, args)
     else:
         raise ValueError("wrong type Loss")

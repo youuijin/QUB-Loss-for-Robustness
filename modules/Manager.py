@@ -5,16 +5,17 @@ import csv, torch, os
 class Manager:
     def __init__(self, args):
         cur = datetime.now().strftime('%m-%d_%H-%M')
-
         if args.train_attack!="":
             if args.train_attack == 'PGD_Linf':
                 attack_name = f'{args.train_attack}/eps{args.train_eps}'
-            elif 'FGSM' in args.train_attack:
+            elif args.train_attack in ['FGSM', 'FGSM_RS', 'FGSM_BR', 'FGSM_NR']:
                 attack_name = f'{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})'
+            elif args.train_attack == 'FGSM_SDI':
+                attack_name = f'{args.train_attack}/eps{args.train_eps}(alpha{args.a2})'
             else:
                 raise ValueError('Attack Name for logger')
             
-            log_name = f'{args.model}/{args.loss}/{attack_name}'
+            log_name = f'{args.model}/{args.loss}/{attack_name}/lr{args.lr}_{args.sche}/{cur}'
            
         else:
             log_name = f"{args.model}/no_attack/lr{args.lr}_{args.sche}/{cur}"
@@ -28,14 +29,13 @@ class Manager:
         if writer_name == "writer":
             writer = self.writer
             writer.add_scalar(name, value, epoch)
-        elif writer_name == "approx":
-            writer = self.approx_writer
-            writer.add_scalar(self.log_name, value, epoch)
-        elif writer_name == "adv":
-            writer = self.adv_writer
-            writer.add_scalar(self.log_name, value, epoch)
+        # elif writer_name == "approx":
+        #     writer = self.approx_writer
+        #     writer.add_scalar(self.log_name, value, epoch)
+        # elif writer_name == "adv":
+        #     writer = self.adv_writer
+        #     writer.add_scalar(self.log_name, value, epoch)
 
-        
     def record_csv(self, file_name, rows):
         with open(f'{self.save_dir}/csvs/{file_name}.csv', 'a', encoding='utf-8', newline='') as f:
             wr = csv.writer(f)

@@ -4,8 +4,8 @@ import torch, time
 from utils.attack_utils import set_attack
 
 class CrossEntropy(Loss):
-    def __init__(self, attack_name, model, eps, args):
-        super().__init__(attack_name, model, eps, args)
+    def __init__(self, attack_name, model, eps, device, args):
+        super().__init__(attack_name, model, eps, device, args)
 
     def calc_loss(self, x, y):
         loss_time_st = time.time()
@@ -30,10 +30,10 @@ TRADES (TRadeoff-inspired Adversarial DEfense via Surrogate-loss minimization)
     Hongyang Zhang (CMU, TTIC), Yaodong Yu (University of Virginia), et al.
 '''
 class TRADES(Loss):
-    def __init__(self, attack_name, model, eps, args):
-        super().__init__(attack_name, model, eps, args)
+    def __init__(self, attack_name, model, eps, device, args):
+        super().__init__(attack_name, model, eps, device, args)
         assert self.attack is not None
-        self.attack = set_attack(attack_name, model, eps, args, type='KL')
+        self.attack = set_attack(attack_name, model, eps, device, args, type='KL')
         self.criterion_kl = torch.nn.KLDivLoss(reduction='sum')
         self.beta = args.beta
 
@@ -58,8 +58,8 @@ class TRADES(Loss):
 ours
 '''
 class QUB(Loss):
-    def __init__(self, attack_name, model, eps, args):
-        super().__init__(attack_name, model, eps, args)
+    def __init__(self, attack_name, model, eps, device, args):
+        super().__init__(attack_name, model, eps, device, args)
         self.lipschitz = 0.5
         assert self.attack is not None
     
