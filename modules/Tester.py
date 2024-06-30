@@ -10,6 +10,7 @@ from torch.utils.data import DataLoader
 # from attack.PGD import PGDAttack
 from attack.AutoAttack import AutoAttack
 from utils import attack_utils
+from attack import IterativeAttack
 
 class Tester:
     def __init__(self, args, model, device):
@@ -67,8 +68,8 @@ class Tester:
         if "AA" in self.test_method:
             self.test_at = AutoAttack(self.model, eps=self.test_eps, args=self.args)
         else:
-            self.test_at = attack_utils.set_attack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
-
+            # self.test_at = attack_utils.set_attack('PGD_Linf', self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
+            self.test_at = IterativeAttack.PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, loss='CE', device=self.device)
     def set_dataset(self, args):
         ### normalize setting ###
         if args.normalize == "imagenet":
