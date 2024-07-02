@@ -92,7 +92,7 @@ class FGSM_SDI(Attack):
         self.device = device
         self.attacker = One_Layer_Attacker(eps=self.eps, input_channel=6).to(self.device)
         self.optimizer_att = torch.optim.SGD(self.attacker.parameters(), lr=lr_att, momentum=0.9, weight_decay=5e-4)
-        
+        self.n_way = args.n_way
         self.step = 0
         self.att_num = 20 # from paper
         tot_steps = args.steps * args.epoch
@@ -150,7 +150,7 @@ class FGSM_SDI(Attack):
 
         if update == 1:
             logit = self.model(advx)
-            one_hot = np.eye(10)[y.to(self.device).data.cpu().numpy()]
+            one_hot = np.eye(self.n_way)[y.to(self.device).data.cpu().numpy()]
             result = one_hot * 0.5 + (one_hot - 1.) * ((0.5 - 1) / float(10 - 1))
             label_smoothing = Variable(torch.tensor(result).to(self.device))
             log_prob = F.log_softmax(logit, dim=-1)

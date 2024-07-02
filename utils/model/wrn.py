@@ -80,3 +80,6 @@ class WideResNet(nn.Module):
 
 def WideResNet_28_10(n_class, dropout=0.0):
     return WideResNet(28, 10, dropout_rate=dropout, num_classes=n_class)
+
+def WideResNet_34_10(n_class, dropout=0.0):
+    return WideResNet(34, 10, dropout_rate=dropout, num_classes=n_class)

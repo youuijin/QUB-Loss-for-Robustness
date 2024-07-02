@@ -28,6 +28,8 @@ def set_model(model_name, n_class, imgc=3, pretrained=False):
         return ResNet101(n_class)
     elif model_name=='wrn_28_10':
         return WideResNet_28_10(n_class, dropout=0.3)
+    elif model_name=='wrn_34_10':
+        return WideResNet_34_10(n_class, dropout=0.3)
     else:
         raise ValueError('Undefined Model Architecture')
 
