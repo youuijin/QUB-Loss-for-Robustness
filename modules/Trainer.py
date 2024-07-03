@@ -85,8 +85,11 @@ class Trainer:
                 if self.args.save_ckpt:
                     self.manager.save_model(self.model, epoch)
                 ## adv acc 기준 최고 모델 저장
-                if best_acc < round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4):
-                    best_acc = round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4)
+                cur_acc = round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4)
+                if self.Loss.attack is None:
+                    cur_acc = round(val_correct_count/len(self.val_loader.dataset)*100, 4)
+                if best_acc < cur_acc:
+                    best_acc = cur_acc
                     self.manager.save_model(self.model)
 
             self.scheduler.step()

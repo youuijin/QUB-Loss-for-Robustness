@@ -20,6 +20,8 @@ def set_seed(seed=706):
 def set_model(model_name, n_class, imgc=3, pretrained=False):
     if model_name=="resnet18":
         return ResNet18(n_class)
+    elif model_name=="preresnet18":
+        return PreActResNet18(n_class)
     elif model_name=="resnet34":
         return ResNet34(n_class)
     elif model_name=="resnet50":
