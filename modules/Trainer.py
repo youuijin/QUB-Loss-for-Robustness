@@ -90,13 +90,14 @@ class Trainer:
                     cur_acc = round(val_correct_count/len(self.val_loader.dataset)*100, 4)
                 if best_acc < cur_acc:
                     best_acc = cur_acc
+                    best_accs = [round(val_correct_count/len(self.val_loader.dataset)*100, 4), round(val_adv_correct_count/len(self.val_loader.dataset)*100, 4)]
                     self.manager.save_model(self.model)
 
             self.scheduler.step()
 
         self.manager.save_model(self.model, mode='last')
             
-        return last_val, last_val_adv, round(train_time,4), round(tot_attack_time,4)
+        return best_accs[0], best_accs[1], last_val, last_val_adv, round(train_time,4), round(tot_attack_time,4)
     
     def test(self):
         # test

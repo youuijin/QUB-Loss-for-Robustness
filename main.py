@@ -17,6 +17,7 @@ def main(args):
     ## model setting ##
     model = train_utils.set_model(args.model, args.n_way, args.imgc, args.pretrained)
     model = model.to(device)
+    log_name = None
 
     if args.mode == 'train':
         prnt(vars(args))
@@ -26,17 +27,16 @@ def main(args):
         ## Train ##
         trainer = Trainer(args, model, device, manager)
 
-        last_val, last_val_adv, train_time, attack_time = trainer.train()
-        test_acc, test_adv_acc = trainer.test()
+        best_val, best_val_adv, last_val, last_val_adv, train_time, attack_time = trainer.train()
+        # test_acc, test_adv_acc = trainer.test()
 
         # ## logging result in csv ##
-        result = [manager.log_name, test_acc, test_adv_acc, last_val, last_val_adv, train_time, attack_time]
+        log_name = manager.log_name
+        result = [manager.log_name, best_val, best_val_adv, last_val, last_val_adv, train_time, attack_time]
         manager.record_csv('result', result)
-        
-    else:
-        # test using auto attack
-        tester = Tester(args, model, device)
-        tester.test()
+
+    tester = Tester(args, model, device, log_name)
+    tester.test()
         
 
 if __name__ == '__main__':

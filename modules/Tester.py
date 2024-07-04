@@ -13,45 +13,44 @@ from utils import attack_utils
 from attack import IterativeAttack
 
 class Tester:
-    def __init__(self, args, model, device):
+    def __init__(self, args, model, device, log_name):
         self.device = device
         self.model = model.to(device)
-        self.save_path = f'./results/{args.dataset}'
+        self.save_path = f'./results/{args.dataset}/{args.model}'
         self.args = args
 
         self.test_eps = args.test_eps
-        self.test_method = args.test_method
+        self.test_method = ['AA', 'PGD']
         self.dataset = args.dataset
 
-        # auto attack
-        if args.test_method == "AA":
-            self.csv = 'AutoAttack'
-        elif args.test_method == "AA_ckpt":
-            self.csv = 'AutoAttack_ckpt'
-        # adversarial attack - PGD_Linf
-        else:
-            self.csv = 'PGD_Attack'
+        print('Testing Start')
+        print(f'Model Name : {log_name}, test_method : {self.test_method}')
 
-        self.set_tested_model()
-
-        if args.model_path != "":
-            if self.check_is_tested(args.model_path+".pt"):
-                raise ValueError("This model is already tested")
-            self.model_paths = [f'{args.model_path}.pt']
+        if log_name is not None:
+            # test after train, don't neet to check csv files
+            log_name = log_name.replace("/", "_")
+            # self.model_paths = [f'{args.model}_{log_name}.pt', f'{args.model}_{log_name}_last.pt']
+            self.model_paths = [f'{args.model}_{log_name}_last.pt']
         else:
-            exist_model_paths = os.listdir(f'{self.save_path}/saved_model')
-            self.model_paths = []
-            
-            for exist_model_path in exist_model_paths:
-                if not self.check_is_tested(exist_model_path):
-                    self.model_paths.append(exist_model_path)
+            self.set_tested_model()
+
+            if args.model_path != "":
+                if self.check_is_tested(args.model_path+".pt"):
+                    raise ValueError("This model is already tested")
+                self.model_paths = [f'{args.model_path}.pt']
+            else:
+                exist_model_paths = os.listdir(f'{self.save_path}/saved_model')
+                self.model_paths = []
+                
+                for exist_model_path in exist_model_paths:
+                    if not self.check_is_tested(exist_model_path):
+                        self.model_paths.append(exist_model_path)
 
         self.set_dataset(args)
-        self.attack_method()
 
     def set_tested_model(self):
         self.tested_model_paths = []
-        f = open(f'{self.save_path}/csvs/{self.csv}.csv', 'r', encoding='utf-8')
+        f = open(f'{self.save_path}/csvs/test_result.csv', 'r', encoding='utf-8')
         rdr = csv.reader(f)
         next(rdr)
         for line in rdr:
@@ -64,11 +63,10 @@ class Tester:
         else:
             return False
 
-    def attack_method(self):
-        if "AA" in self.test_method:
+    def attack_method(self, test_name):
+        if test_name == "AA":
             self.test_at = AutoAttack(self.model, eps=self.test_eps, args=self.args)
         else:
-            # self.test_at = attack_utils.set_attack('PGD_Linf', self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, norm='Linf')
             self.test_at = IterativeAttack.PGDAttack(self.model, eps=self.test_eps, alpha=2., iter=50, restart=10, loss='CE', device=self.device)
     def set_dataset(self, args):
         ### normalize setting ###
@@ -99,23 +97,32 @@ class Tester:
                 continue
             self.model.load_state_dict(torch.load(f'{self.save_path}/saved_model/{model_path}', map_location=self.device))
             self.model.eval()
+            accuracies = []
 
+            # clean accuracy
             test_correct_count = 0
-            test_adv_correct_count = 0
-            for _, (x, y) in enumerate(tqdm(self.test_loader, desc=f'{self.test_method} test')):
-                x = x.to(self.device)
-                y = y.to(self.device)
-                x_adv = self.test_at.perturb(x, y)
+            for _, (x, y) in enumerate(tqdm(self.test_loader, desc=f'clean test')):
+                x, y = x.to(self.device), y.to(self.device)
                 correct_count = self.inference(x, y)
-                adv_correct_count = self.inference(x_adv, y)
                 test_correct_count += correct_count
-                test_adv_correct_count += adv_correct_count
-            
-            test_acc =  round(test_correct_count/len(self.test_data)*100, 4)
-            test_adv_acc = round(test_adv_correct_count/len(self.test_data)*100, 4)
+            accuracies.append(round(test_correct_count/len(self.test_data)*100, 4))
 
-            result = [model_path, self.test_eps, test_acc, test_adv_acc]
-            with open(f'{self.save_path}/csvs/{self.csv}.csv', 'a', encoding='utf-8', newline='') as f:
+            # robust accuracy
+            for test_name in self.test_method:
+                self.attack_method(test_name)
+
+                test_adv_correct_count = 0
+                for _, (x, y) in enumerate(tqdm(self.test_loader, desc=f'{test_name} test')):
+                    x, y = x.to(self.device), y.to(self.device)
+                    x_adv = self.test_at.perturb(x, y)
+                    adv_correct_count = self.inference(x_adv, y)
+                    test_adv_correct_count += adv_correct_count
+
+                test_adv_acc = round(test_adv_correct_count/len(self.test_data)*100, 4)
+                accuracies.append(test_adv_acc)
+
+            result = [model_path, self.test_eps] + accuracies
+            with open(f'{self.save_path}/csvs/test_result.csv', 'a', encoding='utf-8', newline='') as f:
                 wr = csv.writer(f)
                 wr.writerow(result)
 

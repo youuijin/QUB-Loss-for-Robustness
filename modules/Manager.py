@@ -4,7 +4,7 @@ import csv, torch, os
 
 class Manager:
     def __init__(self, args):
-        self.model = args.model
+        self.model_name = args.model
         cur = datetime.now().strftime('%m-%d_%H-%M')
         if args.train_attack!="":
             if args.train_attack == 'PGD_Linf':
@@ -44,13 +44,13 @@ class Manager:
     
     def save_model(self, model, ckpt=-1, mode='best'):
         if mode == 'last':
-            save_path = f'{self.save_dir}/saved_model/{self.model}_{self.log_name.replace("/", "_")}_last.pt'
+            save_path = f'{self.save_dir}/saved_model/{self.model_name}_{self.log_name.replace("/", "_")}_last.pt'
         elif ckpt >= 0:
             # during valudation phase
             str_ckpt = '0'*(3-len(str(ckpt))) + str(ckpt)
-            os.makedirs(f'{self.save_dir}/ckpt/{self.model}_{self.log_name.replace("/", "_")}', exist_ok=True)
-            save_path=f'{self.save_dir}/ckpt/{self.model}_{self.log_name.replace("/", "_")}/epoch_{str_ckpt}.pt'
+            os.makedirs(f'{self.save_dir}/ckpt/{self.model_name}_{self.log_name.replace("/", "_")}', exist_ok=True)
+            save_path=f'{self.save_dir}/ckpt/{self.model_name}_{self.log_name.replace("/", "_")}/epoch_{str_ckpt}.pt'
         else:
             # after whole training phase
-            save_path = f'{self.save_dir}/saved_model/{self.model}_{self.log_name.replace("/", "_")}.pt'
+            save_path = f'{self.save_dir}/saved_model/{self.model_name}_{self.log_name.replace("/", "_")}.pt'
         torch.save(model.state_dict(), save_path)
