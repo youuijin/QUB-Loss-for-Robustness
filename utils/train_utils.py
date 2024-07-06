@@ -65,7 +65,6 @@ def set_optim(model, sche, lr, epoch):
     
     return optim, scheduler
 
-
 def set_Loss(loss_name, attack_name, model, eps, device, args):
     if loss_name == 'CE':
         return CrossEntropy(attack_name, model, eps, device, args)

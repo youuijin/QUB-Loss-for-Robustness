@@ -85,7 +85,9 @@ if __name__ == '__main__':
     ## Single Step Attack options
     argparser.add_argument('--a1', type=float, default=4.)
     argparser.add_argument('--a2', type=float, default=8.)    
-    argparser.add_argument('--lr_att', type=float, default=0.001)
+    argparser.add_argument('--lr_att', type=float, default=0.001) # for FGSM-SDI
+    argparser.add_argument('--ckpt_num', type=int, default=3) # for FGSM-CKPT
+    argparser.add_argument('--ckpt_init', type=str, default='none') # for FGSM-CKPT
 
     ## QAUB Attack options
     argparser.add_argument('--lipschitz', type=float, default=0.5)

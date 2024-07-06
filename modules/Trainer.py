@@ -38,7 +38,7 @@ class Trainer:
             self.model.train()
 
             train_time_st = time.time()
-            for batch_idx, (x, y) in enumerate(tqdm(self.train_loader, desc='train step', position=1, leave=False, ascii=" =")):
+            for _, (x, y) in enumerate(tqdm(self.train_loader, desc='train step', position=1, leave=False, ascii=" =")):
                 x = x.to(self.device)
                 y = y.to(self.device)
                 loss, attack_time, loss_time = self.Loss.calc_loss(x, y)

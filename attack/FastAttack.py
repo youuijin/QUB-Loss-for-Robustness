@@ -30,18 +30,8 @@ class FGSM(Attack):
 
         delta.requires_grad = True
 
-        # TODO: Change to CE Loss after testing QQ experiments
-        logit = self.model(x)
-        adv_logit = self.model(x + delta)
-        adv_norm = torch.norm(adv_logit-logit, dim=1)
-        softmax = F.softmax(logit, dim=1)
-        y_onehot = F.one_hot(y, num_classes = softmax.shape[1])
-        loss = F.cross_entropy(logit, y, reduction='none')
-        loss_adv = loss + torch.sum((adv_logit-logit)*(softmax-y_onehot), dim=1) + 0.5/2.0*torch.pow(adv_norm, 2)
-        loss = loss_adv.mean()
-
-        # output = self.model(x + delta)
-        # loss = F.cross_entropy(output, y, reduction='mean')
+        output = self.model(x + delta)
+        loss = F.cross_entropy(output, y, reduction='mean')
         loss.backward()
 
         grad = delta.grad.detach()
@@ -78,7 +68,96 @@ class FGSM_CKPT(Attack):
     Understanding catastrophic overfitting in single-step adversarial training
     Kim et al., AAAI 2021
     '''
-    pass
+    def __init__(self, model, eps, a1, a2, initial, c, device):
+        self.model = model
+        self.eps = eps/255.
+        self.a1 = a1/255.
+        self.a2 = a2/255.
+        self.c = c # number of checkpoints
+        self.device = device
+
+        if initial == 'none':
+            self.get_dist = self.get_standard_fgsm
+        elif initial == 'uniform':
+            self.get_dist = self.get_uniform_distribution
+
+    def perturb(self, x, y):
+        batch_size = x.shape[0]
+
+        delta = torch.zeros_like(x).to(self.device)
+        delta = self.get_dist(delta)
+        delta.data = torch.clamp(delta, 0 - x, 1 - x)
+
+        delta.requires_grad = True
+
+        output = self.model(x + delta)
+        loss = F.cross_entropy(output, y, reduction='mean')
+        loss.backward()
+
+        grad = delta.grad.detach()
+        delta = torch.clamp(delta + self.a2* torch.sign(grad), -self.eps, self.eps) # TODO: delta.data = vs. delta = 
+
+        delta = torch.clamp(delta, 0 - x, 1 - x)
+        delta = delta.detach()
+
+        advx = x + delta
+
+        # Get correctly classified indexes.
+        logit_clean = self.model(x)
+        _, pre_clean = torch.max(logit_clean.data, 1)
+        correct = (pre_clean == y)
+        correct_idx = torch.masked_select(torch.arange(batch_size).to(self.device), correct)
+        wrong_idx = torch.masked_select(torch.arange(batch_size).to(self.device), ~correct)
+        
+        # Use misclassified images as final images.
+        advx[wrong_idx] = x[wrong_idx].detach()
+
+        # Make checkpoints.
+        # e.g., (batch_size*(c-1))*3*32*32 for CIFAR10.
+        Xs = (torch.cat([x]*(self.c-1)) + \
+              torch.cat([torch.arange(1, self.c).to(self.device).view(-1, 1)]*batch_size, dim=1).view(-1, 1, 1, 1) * \
+              torch.cat([delta/self.c]*(self.c-1)))
+        Ys = torch.cat([y]*(self.c-1))
+                
+        # Inference checkpoints for correct images.
+        idx = correct_idx
+        idxs = []
+        self.model.eval()
+        with torch.no_grad(): 
+            for k in range(self.c-1):
+                # Stop iterations if all checkpoints are correctly classiffied.
+                if len(idx) == 0:
+                    break
+                # Stack checkpoints for inference.
+                elif (batch_size >= (len(idxs)+1)*len(idx)):
+                    idxs.append(idx + k*batch_size)
+                else:
+                    pass
+                
+                # Do inference.
+                if (batch_size < (len(idxs)+1)*len(idx)) or (k==self.c-2):
+                    # Inference selected checkpoints.
+                    idxs = torch.cat(idxs).to(self.device)
+                    pre = self.model(Xs[idxs]).detach()
+                    _, pre = torch.max(pre.data, 1)
+                    correct = (pre == Ys[idxs]).view(-1, len(idx))
+                    
+                    # Get index of misclassified images for selected checkpoints.
+                    max_idx = idxs.max() + 1
+                    wrong_idxs = (idxs.view(-1, len(idx))*(1-correct*1)) + (max_idx*(correct*1))
+                    wrong_idx, _ = wrong_idxs.min(dim=0)
+                    
+                    wrong_idx = torch.masked_select(wrong_idx, wrong_idx < max_idx)
+                    update_idx = wrong_idx%batch_size
+                    advx[update_idx] = Xs[wrong_idx]
+                    
+                    # Set new indexes by eliminating updated indexes.
+                    idx = torch.tensor(list(set(idx.cpu().data.numpy().tolist())\
+                                            -set(update_idx.cpu().data.numpy().tolist())))
+                    idxs = []
+
+        self.model.train()
+        return advx.detach()
 
 class FGSM_SDI(Attack):
     '''
