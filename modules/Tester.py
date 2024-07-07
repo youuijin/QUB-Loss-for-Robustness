@@ -23,14 +23,10 @@ class Tester:
         self.test_method = ['AA', 'PGD']
         self.dataset = args.dataset
 
-        print('Testing Start')
-        print(f'Model Name : {log_name}, test_method : {self.test_method}')
-
         if log_name is not None:
             # test after train, don't neet to check csv files
             log_name = log_name.replace("/", "_")
-            # self.model_paths = [f'{args.model}_{log_name}.pt', f'{args.model}_{log_name}_last.pt']
-            self.model_paths = [f'{args.model}_{log_name}_last.pt']
+            self.model_paths = [f'{args.model}_{log_name}.pt', f'{args.model}_{log_name}_last.pt']
         else:
             self.set_tested_model()
 
@@ -99,6 +95,8 @@ class Tester:
             self.model.eval()
             accuracies = []
 
+            print('Testing Start')
+            print(f'Model Name : {model_path}, test_method : {self.test_method}')
             # clean accuracy
             test_correct_count = 0
             for _, (x, y) in enumerate(tqdm(self.test_loader, desc=f'clean test')):
@@ -106,6 +104,9 @@ class Tester:
                 correct_count = self.inference(x, y)
                 test_correct_count += correct_count
             accuracies.append(round(test_correct_count/len(self.test_data)*100, 4))
+
+
+           
 
             # robust accuracy
             for test_name in self.test_method:

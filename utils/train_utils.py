@@ -70,6 +70,8 @@ def set_Loss(loss_name, attack_name, model, eps, device, args):
         return CrossEntropy(attack_name, model, eps, device, args)
     elif loss_name == 'TRADES':
         return TRADES(attack_name, model, eps, device, args)
+    elif loss_name == 'NuAT':
+        return NuAT(attack_name, model, eps, device, args)
     elif loss_name == 'QUB':
         return QUB(attack_name, model, eps, device, args)
     else:

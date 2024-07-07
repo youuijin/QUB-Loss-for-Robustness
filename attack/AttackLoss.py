@@ -53,6 +53,30 @@ class TRADES(Loss):
 
         return loss + self.beta * loss_adv, attack_time, loss_time
 
+class NuAT(Loss):
+    def __init__(self, attack_name, model, eps, device, args):
+        super().__init__(attack_name, model, eps, device, args)
+        assert attack_name == 'NuAT'
+        self.attack = set_attack(attack_name, model, eps, device, args)
+        self.nuc_reg = args.nuc_reg
+
+    def calc_loss(self, x, y):
+        loss_time_st = time.time()
+        logit = self.model(x)
+
+        attack_time_st = time.time()
+        advx = self.attack.perturb(x, y)
+        attack_time = (time.time() - attack_time_st)
+
+        adv_logit = self.model(advx)
+
+        loss = F.cross_entropy(logit, y) + self.nuc_reg*torch.norm(logit - adv_logit, 'nuc')/x.shape[0]
+
+        loss_time = time.time() - loss_time_st
+
+        return loss, attack_time, loss_time
+
+
 '''
 
 ours

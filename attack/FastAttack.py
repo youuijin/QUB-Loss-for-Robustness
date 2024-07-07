@@ -240,4 +240,39 @@ class FGSM_SDI(Attack):
 
         return advx
 
+class NuAT(Attack):
+    '''
+    # TODO:
+    '''
+    def __init__(self, model, eps, a1, a2, nuc_reg, device):
+        self.model = model
+        self.eps = eps/255.
+        self.a1 = a1/255.
+        self.a2 = a2/255.
+        self.device = device
+        self.nuc_reg = nuc_reg
+        self.get_dist = self.get_bernoulli_distribution
+
+    def perturb(self, x, y):
+        delta = torch.zeros_like(x).to(self.device)
+        delta = self.get_dist(delta)
+        delta.data = torch.clamp(delta, 0 - x, 1 - x)
+
+        delta.requires_grad = True
+
+        self.model.eval()
+        output = self.model(x)
+        adv_output = self.model(x + delta)
         
+        loss = F.cross_entropy(output ,y) + self.nuc_reg*torch.norm(output - adv_output, 'nuc')/x.shape[0]
+        loss.backward()
+
+        grad = delta.grad.detach()
+        delta.data = torch.clamp(delta + self.a2* torch.sign(grad), -self.eps, self.eps)
+
+        delta = torch.clamp(delta, 0 - x, 1 - x)
+        delta = delta.detach()
+
+        self.model.train()
+
+        return x + delta # advx

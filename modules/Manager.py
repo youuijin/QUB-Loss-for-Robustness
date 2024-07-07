@@ -15,6 +15,9 @@ class Manager:
                 attack_name = f'{args.train_attack}/eps{args.train_eps}(alpha{args.a2})'
             elif args.train_attack == 'FGSM_CKPT':
                 attack_name = f'{args.train_attack}/eps{args.train_eps}({args.a1}_{args.a2})/ckpt{args.ckpt_num}_{args.ckpt_init}'
+            elif args.train_attack == 'NuAT':
+                attack_name = f'eps{args.train_eps}({args.a1}_{args.a2})/nuc_reg{args.nuc_reg}'
+            
             else:
                 raise ValueError('Attack Name for logger')
             

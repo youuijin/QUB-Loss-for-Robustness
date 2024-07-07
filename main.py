@@ -88,6 +88,7 @@ if __name__ == '__main__':
     argparser.add_argument('--lr_att', type=float, default=0.001) # for FGSM-SDI
     argparser.add_argument('--ckpt_num', type=int, default=3) # for FGSM-CKPT
     argparser.add_argument('--ckpt_init', type=str, default='none') # for FGSM-CKPT
+    argparser.add_argument('--nuc_reg', type=float, default=4.0) # for NuAT
 
     ## QAUB Attack options
     argparser.add_argument('--lipschitz', type=float, default=0.5)
